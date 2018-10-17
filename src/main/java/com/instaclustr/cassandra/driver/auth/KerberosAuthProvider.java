@@ -116,6 +116,8 @@ public class KerberosAuthProvider implements AuthProvider {
         private String saslProtocol = DEFAULT_SASL_PROTOCOL;
         private Map<String, ?> saslProperties = DEFAULT_SASL_PROPERTIES;
 
+        private Builder() {}
+
         public Builder withAuthorizationId(String authorizationId) {
             this.authorizationId = authorizationId;
             return this;
