@@ -90,6 +90,8 @@ import java.util.Map;
  */
 public class KerberosAuthProvider implements AuthProvider {
 
+    private static final Logger logger = LoggerFactory.getLogger(KerberosAuthProvider.class);
+
     private static final String DEFAULT_SASL_PROTOCOL = "cassandra";
     private static final Map<String, String> DEFAULT_SASL_PROPERTIES =
             ImmutableMap.<String, String>builder()
@@ -132,8 +134,6 @@ public class KerberosAuthProvider implements AuthProvider {
             this.saslProperties = saslProperties;
             return this;
         }
-
-
 
         public KerberosAuthProvider build() {
             return new KerberosAuthProvider(authorizationId, saslProtocol, saslProperties);
@@ -203,7 +203,10 @@ public class KerberosAuthProvider implements AuthProvider {
 
         @Override
         public void onAuthenticationSuccess(byte[] token) {
-            // no-op
+            if (saslClient.isComplete())
+                logger.debug("Authenticated with QOP: {}", saslClient.getNegotiatedProperty(Sasl.QOP));
+            else
+                logger.error("Cassandra reports authentication success, however SASL authentication is not yet complete.");
         }
     }
 
