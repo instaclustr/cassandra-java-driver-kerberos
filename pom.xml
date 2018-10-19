@@ -6,7 +6,7 @@
 
     <groupId>com.instaclustr.cassandra</groupId>
     <artifactId>cassandra-java-driver-kerberos</artifactId>
-    <version>0.0.1</version>
+    <version>0.1</version>
 
     <name>Cassandra Java Driver Kerberos Authenticator</name>
     <url>https://github.com/instaclustr/cassandra-java-driver-kerberos</url>
