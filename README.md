@@ -16,11 +16,17 @@ include it in your application's classpath.*
 
 ### Pre-requisite setup steps
 
-- A Kerberos KDC server is required
+- A Kerberos 5 KDC server is available
+- Kerberos client libraries are installed
+- An NTP client is installed & configured on each Cassandra node. Ideally the Cassandra nodes sync 
+  with the same time source as the KDC in order to minimise potential time-sync issues.
+- If using Oracle Java, ensure that the [Java Cryptographic Extensions Unlimited Strength Jurisdiction Policy Files](https://www.oracle.com/technetwork/java/javase/downloads/jce8-download-2133166.html)
+  are installed (not necessary when using OpenJDK or other JRE implementations)
 - Follow the instructions [here](https://github.com/instaclustr/cassandra-kerberos) to configure a Cassandra cluster for Kerberos authentication.
-- Configure the application server's Kerberos configuration file:
 
-    An example `/etc/krb5.conf` for the `EXAMPLE.COM` realm:
+Configure the `/etc/krb5.conf` Kerberos config file (see [here](http://web.mit.edu/kerberos/www/krb5-latest/doc/admin/conf_files/krb5_conf.html) for further details).
+
+An example `krb5.conf` for the `EXAMPLE.COM` realm:
     
     ```$ini
     [logging]
