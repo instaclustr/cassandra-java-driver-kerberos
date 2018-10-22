@@ -48,6 +48,12 @@ import java.util.Map;
  *                      .build();
  * }</pre>
  *
+ * <h2>Kerberos configuration file</h2>
+ *
+ * Ensure that the host has a valid
+ * <a href="http://web.mit.edu/kerberos/www/krb5-latest/doc/admin/conf_files/krb5_conf.html">Kerberos configuration file</a>,
+ * with the Kerberos realm & KDC configured.
+ *
  * <h2>SASL protocol name</h2>
  *
  * The SASL protocol name defaults to <code>{@value #DEFAULT_SASL_PROTOCOL}</code>. It can be configured using
@@ -76,7 +82,16 @@ import java.util.Map;
  * (see <a href="https://docs.oracle.com/javase/8/docs/technotes/guides/security/PolicyFiles.html">here</a>
  * for more details).
  *
+ * The following example JAAS configuration demonstrates authentication via a TGT in the local ticket cache:
+ *
+ * <pre>{@code
+ * CassandraJavaClient {
+ *    com.sun.security.auth.module.Krb5LoginModule required useTicketCache=true;
+ * };
+ * }</pre>
+ *
  * The following example JAAS configuration demonstrates authentication via a keytab:
+ *
  * <pre>{@code
  * CassandraJavaClient {
  *     com.sun.security.auth.module.Krb5LoginModule required
@@ -120,16 +135,60 @@ public class KerberosAuthProvider implements AuthProvider {
 
         private Builder() {}
 
+        /**
+         * Provide an authorization ID, representing a Cassandra user. The user will be assumed on behalf of the
+         * client's principal.
+         *
+         * Note that the client principal must still exist as a Cassandra user, and the user
+         * represented by the client's principal must have permission on the user represented by the authorization ID.
+         *
+         * For example, if the client application connects to a Cassandra cluster using the Kerberos principal
+         * <code>admin@EXAMPLE.COM</code>, and an authorization ID of "demoapp", then the authenticator will assume
+         * the Cassandra role of "demoapp", assuming that the Cassandra user "admin" exists and has permission on
+         * role "demoapp".
+         *
+         * If not provided, the application will assume the cassandra role represented by the client's principal.
+         *
+         * See <a href="http://cassandra.apache.org/doc/latest/cql/security.html#grant-role">GRANT ROLE</a> for more
+         * information.
+         *
+         * @param authorizationId Username of a Cassandra user to assume
+         * @return the builder object
+         */
         public Builder withAuthorizationId(String authorizationId) {
             this.authorizationId = authorizationId;
             return this;
         }
 
+        /**
+         * Provide a SASL protocol name. The protocol name must match the service principals used by the Cassandra nodes.
+         *
+         * For example, if the Cassandra nodes are configured to use service principals named
+         * <code>cassandra/host1.cluster.example.com@EXAMPLE.COM</code>, then the SASL protocol name is "cassandra".
+         *
+         * If not provided, the default value of <code>{@value #DEFAULT_SASL_PROTOCOL}</code> is used.
+         *
+         * @param saslProtocol The name of the SASL protocol
+         * @return the builder object
+         */
         public Builder withSaslProtocol(String saslProtocol) {
             this.saslProtocol = saslProtocol;
             return this;
         }
 
+        /**
+         * Specify the SASL properties for authentication. Note that the QOP value must match that configured for the
+         * Cassandra nodes.
+         *
+         * Note that if using Cassandra client TLS, a QOP value other than "auth" will provide redundant
+         * encryption/integrity protection over that already provided by TLS.
+         *
+         * See <a href="https://docs.oracle.com/javase/8/docs/technotes/guides/security/sasl/sasl-refguide.html#CLIENT">here</a>
+         * for further information.
+         *
+         * @param saslProperties SASL properties to apply to the connection.
+         * @return the builder object
+         */
         public Builder withSaslProperties(Map<String, ?> saslProperties) {
             this.saslProperties = saslProperties;
             return this;
