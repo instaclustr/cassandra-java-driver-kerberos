@@ -20,6 +20,7 @@ package com.instaclustr.cassandra.driver.auth;
 import com.datastax.driver.core.AuthProvider;
 import com.datastax.driver.core.Authenticator;
 import com.datastax.driver.core.exceptions.AuthenticationException;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -225,6 +226,8 @@ public class KerberosAuthProvider implements AuthProvider
 
         private KerberosAuthenticator(String authorizationId, String saslProtocol, InetSocketAddress host, Map<String, ?> saslProperties)
         {
+            Preconditions.checkNotNull(saslProtocol);
+
             this.subject = loginAsSubject();
 
             try {
