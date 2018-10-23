@@ -7,7 +7,7 @@ This driver plugin is intended to work with the
 
 ## Build
 
-Run `mvn clean package`
+Run `mvn clean package` 
 
 ## Use
 
@@ -18,7 +18,7 @@ include it in your application's classpath.*
 
 - A Kerberos 5 KDC server is available
 - Kerberos client libraries are installed
-- An NTP client is installed & configured on each Cassandra node. Ideally the Cassandra nodes sync 
+- An NTP client is installed & configured on each Cassandra node. Ideally the application host syncs 
   with the same time source as the KDC in order to minimise potential time-sync issues.
 - If using Oracle Java, ensure that the [Java Cryptographic Extensions Unlimited Strength Jurisdiction Policy Files](https://www.oracle.com/technetwork/java/javase/downloads/jce8-download-2133166.html)
   are installed (not necessary when using OpenJDK or other JRE implementations)

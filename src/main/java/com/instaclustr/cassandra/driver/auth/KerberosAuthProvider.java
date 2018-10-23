@@ -75,37 +75,42 @@ import java.util.Map;
  * then the SASL protocol name must be <code>cassandra</code>.
  *
  * <h2>JAAS configuration file</h2>
- * A JAAS configuration file must be used in order to configure GSSAPI options.
+ * A JAAS configuration file with an entry named "{@value #JAAS_CONFIG_ITEM_NAME}" must be provided in order to
+ * provide the configuration details of the GSS-API subject.
  *
  * Specify the location of the JAAS configuration file via the <code>java.security.auth.login.config</code>
  * system property or by adding an entry in the <code>java.security</code> properties file
  * (see <a href="https://docs.oracle.com/javase/8/docs/technotes/guides/security/PolicyFiles.html">here</a>
  * for more details).
  *
- * The following example JAAS configuration demonstrates authentication via a TGT in the local ticket cache:
+ * The following example JAAS configuration demonstrates Kerberos authentication via a TGT in the local ticket cache:
  *
  * <pre>{@code
- * CassandraJavaClient {
+ * {@value #JAAS_CONFIG_ITEM_NAME} {
  *    com.sun.security.auth.module.Krb5LoginModule required useTicketCache=true;
  * };
  * }</pre>
  *
- * The following example JAAS configuration demonstrates authentication via a keytab:
+ * The following example JAAS configuration demonstrates Kerberos authentication via a keytab:
  *
  * <pre>{@code
- * CassandraJavaClient {
+ * {@value #JAAS_CONFIG_ITEM_NAME} {
  *     com.sun.security.auth.module.Krb5LoginModule required
  *          storeKey=true
  *          principal="principal@MYREALM.COM"
  *          useKeyTab=true
- *          keyTab="/path/to/principal.keytab"
+ *          keyTab="/path/to/principal.keytab";
  * };
  * }</pre>
  *
  */
-public class KerberosAuthProvider implements AuthProvider {
+public class KerberosAuthProvider implements AuthProvider
+{
 
     private static final Logger logger = LoggerFactory.getLogger(KerberosAuthProvider.class);
+
+    private static final String JAAS_CONFIG_ITEM_NAME = "CassandraJavaClient";
+    private static final String[] SASL_MECHANISMS = new String[]{"GSSAPI"};
 
     private static final String DEFAULT_SASL_PROTOCOL = "cassandra";
     private static final Map<String, String> DEFAULT_SASL_PROPERTIES =
@@ -118,7 +123,8 @@ public class KerberosAuthProvider implements AuthProvider {
     private final String saslProtocol;
     private final Map<String, ?> saslProperties;
 
-    private KerberosAuthProvider(final String authorizationId, final String saslProtocol, final Map<String, ?> saslProperties) {
+    private KerberosAuthProvider(final String authorizationId, final String saslProtocol, final Map<String, ?> saslProperties)
+    {
         this.authorizationId = authorizationId;
         this.saslProtocol = saslProtocol;
         this.saslProperties = ImmutableMap.copyOf(saslProperties);
@@ -155,7 +161,8 @@ public class KerberosAuthProvider implements AuthProvider {
          * @param authorizationId Username of a Cassandra user to assume
          * @return the builder object
          */
-        public Builder withAuthorizationId(String authorizationId) {
+        public Builder withAuthorizationId(String authorizationId)
+        {
             this.authorizationId = authorizationId;
             return this;
         }
@@ -171,7 +178,8 @@ public class KerberosAuthProvider implements AuthProvider {
          * @param saslProtocol The name of the SASL protocol
          * @return the builder object
          */
-        public Builder withSaslProtocol(String saslProtocol) {
+        public Builder withSaslProtocol(String saslProtocol)
+        {
             this.saslProtocol = saslProtocol;
             return this;
         }
@@ -189,38 +197,37 @@ public class KerberosAuthProvider implements AuthProvider {
          * @param saslProperties SASL properties to apply to the connection.
          * @return the builder object
          */
-        public Builder withSaslProperties(Map<String, ?> saslProperties) {
+        public Builder withSaslProperties(Map<String, ?> saslProperties)
+        {
             this.saslProperties = saslProperties;
             return this;
         }
 
-        public KerberosAuthProvider build() {
+        public KerberosAuthProvider build()
+        {
             return new KerberosAuthProvider(authorizationId, saslProtocol, saslProperties);
         }
     }
 
     @Override
-    public Authenticator newAuthenticator(InetSocketAddress host, String authenticator) throws AuthenticationException {
+    public Authenticator newAuthenticator(InetSocketAddress host, String authenticator) throws AuthenticationException
+    {
         return new KerberosAuthenticator(authorizationId, saslProtocol, host, saslProperties);
     }
 
-    public static class KerberosAuthenticator implements Authenticator {
+    public static class KerberosAuthenticator implements Authenticator
+    {
 
-        private final Logger logger = LoggerFactory.getLogger(KerberosAuthenticator.class);
-
-        private static final String JAAS_CONFIG_ITEM_NAME = "CassandraJavaClient";
-        private static final String[] SASL_MECHANISMS = new String[]{"GSSAPI"};
+        private final static Logger logger = LoggerFactory.getLogger(KerberosAuthenticator.class);
 
         private final Subject subject;
         private final SaslClient saslClient;
 
-        private KerberosAuthenticator(String authorizationId, String saslProtocol, InetSocketAddress host, Map<String, ?> saslProperties) {
+        private KerberosAuthenticator(String authorizationId, String saslProtocol, InetSocketAddress host, Map<String, ?> saslProperties)
+        {
+            this.subject = loginAsSubject();
 
             try {
-                final LoginContext loginContext = new LoginContext(JAAS_CONFIG_ITEM_NAME);
-                loginContext.login();
-
-                this.subject = loginContext.getSubject();
                 this.saslClient = Sasl.createSaslClient(
                         SASL_MECHANISMS,
                         authorizationId,
@@ -228,20 +235,51 @@ public class KerberosAuthProvider implements AuthProvider {
                         host.getAddress().getCanonicalHostName(),
                         saslProperties,
                         null);
-
-            } catch (LoginException | SaslException e) {
+            } catch (SaslException e) {
                 throw new RuntimeException(e);
             }
         }
 
-        @Override
-        public byte[] initialResponse() {
+        /**
+         * Login using a JAAS file entry named {@value #JAAS_CONFIG_ITEM_NAME}
+         *
+         * @return Authenticated Subject representing the principal retrieved from the login configuration
+         */
+        private static Subject loginAsSubject()
+        {
+            logger.debug("Logging in using login configuration entry named {}", JAAS_CONFIG_ITEM_NAME);
 
-            if (saslClient.hasInitialResponse()) {
-                try {
+            try
+            {
+                // Don't need to supply a name, as it is ignored in the Configuration implementation
+                final LoginContext loginContext = new LoginContext(JAAS_CONFIG_ITEM_NAME, cbh -> {
+                    // Callback is called when login using the configuration fails
+                    throw new RuntimeException(new LoginException("Failed to establish a login context using login " +
+                            "configuration entry named " + JAAS_CONFIG_ITEM_NAME + ". Check your JAAS config file."));
+                });
+                loginContext.login();
+
+                logger.debug("Login context established");
+                return loginContext.getSubject();
+            }
+            catch (LoginException e)
+            {
+                throw new RuntimeException("Failed to establish a login context", e);
+            }
+        }
+
+        @Override
+        public byte[] initialResponse()
+        {
+
+            if (saslClient.hasInitialResponse())
+            {
+                try
+                {
                     return Subject.doAs(subject, (PrivilegedExceptionAction<byte[]>) () ->
                             saslClient.evaluateChallenge(new byte[0]));
-                } catch (PrivilegedActionException e) {
+                } catch (PrivilegedActionException e)
+                {
                     throw new RuntimeException(e.getException());
                 }
             }
@@ -252,16 +290,19 @@ public class KerberosAuthProvider implements AuthProvider {
         @Override
         public byte[] evaluateChallenge(final byte[] challenge) {
 
-            try {
+            try
+            {
                 return Subject.doAs(subject, (PrivilegedExceptionAction<byte[]>) () ->
                         saslClient.evaluateChallenge(challenge));
-            } catch (PrivilegedActionException e) {
+            } catch (PrivilegedActionException e)
+            {
                 throw new RuntimeException(e.getException());
             }
         }
 
         @Override
-        public void onAuthenticationSuccess(byte[] token) {
+        public void onAuthenticationSuccess(byte[] token)
+        {
             if (saslClient.isComplete())
                 logger.debug("Authenticated with QOP: {}", saslClient.getNegotiatedProperty(Sasl.QOP));
             else
