@@ -76,7 +76,7 @@ import java.util.Map;
  * then the SASL protocol name must be <code>cassandra</code>.
  *
  * <h2>JAAS configuration file</h2>
- * A JAAS configuration file with an entry named "{@value #JAAS_CONFIG_ITEM_NAME}" must be provided in order to
+ * A JAAS configuration file with an entry named {@value KerberosAuthenticator#JAAS_CONFIG_ITEM_NAME} must be provided in order to
  * provide the configuration details of the GSS-API subject.
  *
  * Specify the location of the JAAS configuration file via the <code>java.security.auth.login.config</code>
@@ -86,32 +86,29 @@ import java.util.Map;
  *
  * The following example JAAS configuration demonstrates Kerberos authentication via a TGT in the local ticket cache:
  *
- * <pre>{@code
- * {@value #JAAS_CONFIG_ITEM_NAME} {
+ * <pre><code>
+ * CassandraJavaClient {
  *    com.sun.security.auth.module.Krb5LoginModule required useTicketCache=true;
  * };
- * }</pre>
+ * </code></pre>
  *
  * The following example JAAS configuration demonstrates Kerberos authentication via a keytab:
  *
- * <pre>{@code
- * {@value #JAAS_CONFIG_ITEM_NAME} {
+ * <pre><code>
+ * CassandraJavaClient {
  *     com.sun.security.auth.module.Krb5LoginModule required
  *          storeKey=true
  *          principal="principal@MYREALM.COM"
  *          useKeyTab=true
  *          keyTab="/path/to/principal.keytab";
  * };
- * }</pre>
+ * </code></pre>
  *
  */
 public class KerberosAuthProvider implements AuthProvider
 {
 
     private static final Logger logger = LoggerFactory.getLogger(KerberosAuthProvider.class);
-
-    private static final String JAAS_CONFIG_ITEM_NAME = "CassandraJavaClient";
-    private static final String[] SASL_MECHANISMS = new String[]{"GSSAPI"};
 
     private static final String DEFAULT_SASL_PROTOCOL = "cassandra";
     private static final Map<String, String> DEFAULT_SASL_PROPERTIES =
@@ -220,6 +217,9 @@ public class KerberosAuthProvider implements AuthProvider
     {
 
         private final static Logger logger = LoggerFactory.getLogger(KerberosAuthenticator.class);
+
+        private static final String JAAS_CONFIG_ITEM_NAME = "CassandraJavaClient";
+        private static final String[] SASL_MECHANISMS = new String[]{"GSSAPI"};
 
         private final Subject subject;
         private final SaslClient saslClient;
