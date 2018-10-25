@@ -29,27 +29,27 @@ Configure the `/etc/krb5.conf` Kerberos config file (see [here](http://web.mit.e
 
 An example `krb5.conf` for the `EXAMPLE.COM` realm:
     
-    ```$ini
-    [logging]
-    default = FILE:/var/log/krb5libs.log
+```
+[logging]
+default = FILE:/var/log/krb5libs.log
+
+[libdefaults]
+ default_realm = EXAMPLE.COM
+ dns_lookup_realm = false
+ dns_lookup_kdc = false
+
+[realms]
+ EXAMPLE.COM = {
+  kdc = kdc.example.com
+  admin_server = kdc.example.com
+}
+
+[domain_realm]
+ .example.com = EXAMPLE.COM
+ example.com = EXAMPLE.COM
+```
     
-    [libdefaults]
-     default_realm = EXAMPLE.COM
-     dns_lookup_realm = false
-     dns_lookup_kdc = false
-    
-    [realms]
-     EXAMPLE.COM = {
-      kdc = kdc.example.com
-      admin_server = kdc.example.com
-    }
-    
-    [domain_realm]
-     .example.com = EXAMPLE.COM
-     example.com = EXAMPLE.COM
-    ```
-    
-    See [here](http://web.mit.edu/kerberos/www/krb5-latest/doc/admin/conf_files/krb5_conf.html) for further details.
+See [here](http://web.mit.edu/kerberos/www/krb5-latest/doc/admin/conf_files/krb5_conf.html) for further details.
     
     
 ### How to use the authenticator plugin
@@ -58,7 +58,7 @@ An example `krb5.conf` for the `EXAMPLE.COM` realm:
 
 The plugin works with the [Cassandra Java driver](https://github.com/datastax/java-driver):
 
-```$java
+```
 Cluster cluster = Cluster.builder()
                       .addContactPoint(hostname)
                       .withAuthProvider(KerberosAuthProvider.builder().build()
