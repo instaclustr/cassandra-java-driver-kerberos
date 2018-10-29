@@ -51,7 +51,7 @@ import java.util.Map;
  *
  * Ensure that the host has a valid
  * <a href="http://web.mit.edu/kerberos/www/krb5-latest/doc/admin/conf_files/krb5_conf.html">Kerberos configuration file</a>,
- * with the Kerberos realm & KDC configured.
+ * with the Kerberos realm and KDC configured.
  *
  * <h2>SASL protocol name</h2>
  *
