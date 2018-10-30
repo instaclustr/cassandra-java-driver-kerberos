@@ -6,21 +6,23 @@ This driver plugin is intended to work with the
 [Cassandra kerberos authenticator](https://github.com/instaclustr/cassandra-kerberos) plugin for 
 [Apache Cassandra](https://cassandra.apache.org/).
 
-## Build
+## Usage
 
-Run `mvn clean package` 
+The authenticator is distributed via Maven Central. To use, add the following dependency to your POM:
 
-## Use
-
-**Note:** *This authenticator plugin is not yet hosted in Maven Central, so you will need to manually build & 
-include it in your application's classpath.*
+```
+<dependency>
+  <groupId>com.instaclustr</groupId>
+  <artifactId>cassandra-driver-kerberos</artifactId>
+  <version>1.0.0</version>
+</dependency>
+```
 
 ### Pre-requisite setup steps
 
 - A Kerberos 5 KDC server is available
-- Kerberos client libraries are installed
-- An NTP client is installed & configured on each Cassandra node. Ideally the application host syncs 
-  with the same time source as the KDC in order to minimise potential time-sync issues.
+- An NTP client is installed & configured on the application host, each Cassandra node, and the KDC. Ideally the application host syncs 
+  with the same time source as the KDC & Cassandra nodes in order to minimise potential time-sync issues.
 - If using Oracle Java, ensure that the [Java Cryptographic Extensions Unlimited Strength Jurisdiction Policy Files](https://www.oracle.com/technetwork/java/javase/downloads/jce8-download-2133166.html)
   are installed (not necessary when using OpenJDK or other JRE implementations)
 - Follow the instructions [here](https://github.com/instaclustr/cassandra-kerberos) to configure a Cassandra cluster for Kerberos authentication.
@@ -72,8 +74,12 @@ CassandraJavaClient {
    com.sun.security.auth.module.Krb5LoginModule required useTicketCache=true;
 };
 ```
+This particular example requires that the Kerberos client libraries & tools (`kinit` in particular) are installed.
 
-The location of the JAAS config file can be provided via the `java.security.auth.login.config` system property
-(e.g. `java -Djava.security.auth.login.config=/path/to/jaas.conf -jar MyApplication.jar`).
+The location of the JAAS config file must be provided via the `java.security.auth.login.config` system property.
 
+For example:  `java -Djava.security.auth.login.config=/path/to/jaas.conf -jar MyApplication.jar`
 
+## Build
+
+If you would like to build the JAR package from source, checkout this project and run `mvn clean package`.
