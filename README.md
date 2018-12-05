@@ -83,3 +83,5 @@ For example:  `java -Djava.security.auth.login.config=/path/to/jaas.conf -jar My
 ## Build
 
 If you would like to build the JAR package from source, checkout this project and run `mvn clean package`.
+
+Please see https://www.instaclustr.com/support/documentation/announcements/instaclustr-open-source-project-status/ for Instaclustr support status of this project.
