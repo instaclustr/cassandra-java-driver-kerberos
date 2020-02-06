@@ -15,11 +15,13 @@
  */
 package com.instaclustr.cassandra.driver.auth;
 
-import com.datastax.driver.core.AuthProvider;
-import com.datastax.driver.core.Authenticator;
-import com.datastax.driver.core.exceptions.AuthenticationException;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
+import com.datastax.oss.driver.api.core.auth.AuthProvider;
+import com.datastax.oss.driver.api.core.auth.AuthenticationException;
+import com.datastax.oss.driver.api.core.auth.Authenticator;
+import com.datastax.oss.driver.api.core.metadata.EndPoint;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,9 +32,12 @@ import javax.security.sasl.Sasl;
 import javax.security.sasl.SaslClient;
 import javax.security.sasl.SaslException;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 
 /**
@@ -206,9 +211,21 @@ public class KerberosAuthProvider implements AuthProvider
     }
 
     @Override
-    public Authenticator newAuthenticator(InetSocketAddress host, String authenticator) throws AuthenticationException
+    public Authenticator newAuthenticator(@NonNull EndPoint endpoint, @NonNull String authenticator) throws AuthenticationException
     {
-        return new KerberosAuthenticator(authorizationId, saslProtocol, host, saslProperties);
+        return new KerberosAuthenticator(authorizationId, saslProtocol, endpoint, saslProperties);
+    }
+
+    @Override
+    public void onMissingChallenge(@NonNull EndPoint endpoint) throws AuthenticationException
+    {
+        throw new AuthenticationException(endpoint, "Node did not send an authentication challenge; "
+                + "This is suspicious because the driver expects authentication");
+    }
+
+    @Override
+    public void close() throws Exception {
+        // nothing to do
     }
 
     public static class KerberosAuthenticator implements Authenticator
@@ -222,18 +239,25 @@ public class KerberosAuthProvider implements AuthProvider
         private final Subject subject;
         private final SaslClient saslClient;
 
-        private KerberosAuthenticator(String authorizationId, String saslProtocol, InetSocketAddress host, Map<String, ?> saslProperties)
+        private KerberosAuthenticator(String authorizationId, String saslProtocol, EndPoint endpoint, Map<String, ?> saslProperties)
         {
-            Preconditions.checkNotNull(saslProtocol);
+            if (saslProperties == null) {
+                throw new NullPointerException("No SASL Properties supplied, unable to perform kerberos authentication");
+            }
 
             this.subject = loginAsSubject();
+
+            String hostName = ((InetSocketAddress)endpoint.resolve()).getAddress().getCanonicalHostName();
+
+            logger.debug("Creating SaslClient for {} on Host {} with {} mechanism. SASL Protocol: {} SASL Properties: {}",
+                    authorizationId, hostName, SASL_MECHANISMS, saslProtocol, saslProperties);
 
             try {
                 this.saslClient = Sasl.createSaslClient(
                         SASL_MECHANISMS,
                         authorizationId,
                         saslProtocol,
-                        host.getAddress().getCanonicalHostName(),
+                        hostName,
                         saslProperties,
                         null);
             } catch (SaslException e) {
@@ -270,31 +294,35 @@ public class KerberosAuthProvider implements AuthProvider
         }
 
         @Override
-        public byte[] initialResponse()
+        public CompletionStage<ByteBuffer> initialResponse()
         {
 
             if (saslClient.hasInitialResponse())
             {
                 try
                 {
-                    return Subject.doAs(subject, (PrivilegedExceptionAction<byte[]>) () ->
+                    byte[] response = Subject.doAs(subject, (PrivilegedExceptionAction<byte[]>) () ->
                             saslClient.evaluateChallenge(new byte[0]));
+                    return CompletableFuture.completedFuture(ByteBuffer.wrap(response));
                 } catch (PrivilegedActionException e)
                 {
                     throw new RuntimeException(e.getException());
                 }
             }
 
-            return new byte[0];
+            return CompletableFuture.completedFuture(ByteBuffer.wrap(new byte[0]));
         }
 
         @Override
-        public byte[] evaluateChallenge(final byte[] challenge) {
-
+        public CompletionStage<ByteBuffer> evaluateChallenge(@Nullable ByteBuffer challenge) {
             try
             {
-                return Subject.doAs(subject, (PrivilegedExceptionAction<byte[]>) () ->
-                        saslClient.evaluateChallenge(challenge));
+                byte[] bytes = new byte[challenge.capacity()];
+                challenge.get(bytes, 0, bytes.length);
+
+                byte[] evaluation = Subject.doAs(subject, (PrivilegedExceptionAction<byte[]>) () ->
+                        saslClient.evaluateChallenge(bytes));
+                return CompletableFuture.completedFuture(ByteBuffer.wrap(evaluation));
             } catch (PrivilegedActionException e)
             {
                 throw new RuntimeException(e.getException());
@@ -302,12 +330,14 @@ public class KerberosAuthProvider implements AuthProvider
         }
 
         @Override
-        public void onAuthenticationSuccess(byte[] token)
+        public CompletionStage<Void> onAuthenticationSuccess(@Nullable ByteBuffer var1)
         {
             if (saslClient.isComplete())
                 logger.debug("Authenticated with QOP: {}", saslClient.getNegotiatedProperty(Sasl.QOP));
             else
                 logger.error("Cassandra reports authentication success, however SASL authentication is not yet complete.");
+
+            return CompletableFuture.completedFuture(null);
         }
     }
 
