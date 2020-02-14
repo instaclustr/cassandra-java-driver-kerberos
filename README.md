@@ -61,8 +61,8 @@ See [here](http://web.mit.edu/kerberos/www/krb5-latest/doc/admin/conf_files/krb5
 The plugin works with the [Cassandra Java driver](https://github.com/datastax/java-driver):
 
 ```
-Cluster cluster = Cluster.builder()
-                      .addContactPoint(hostname)
+CqlSession session = CqlSession.builder()
+                      .addContactPoint(new InetSocketAddress(ipAddress, 9042))
                       .withAuthProvider(KerberosAuthProvider.builder().build()
                       .build();
 ```
