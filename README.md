@@ -14,7 +14,7 @@ The authenticator is distributed via Maven Central. To use, add the following de
 <dependency>
   <groupId>com.instaclustr</groupId>
   <artifactId>cassandra-driver-kerberos</artifactId>
-  <version>1.0.0</version>
+  <version>2.0.0</version>
 </dependency>
 ```
 
