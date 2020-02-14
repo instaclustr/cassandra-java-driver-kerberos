@@ -31,7 +31,6 @@ import javax.security.auth.login.LoginException;
 import javax.security.sasl.Sasl;
 import javax.security.sasl.SaslClient;
 import javax.security.sasl.SaslException;
-import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
@@ -46,8 +45,8 @@ import java.util.concurrent.CompletionStage;
  * Specify this auth provider when creating a new Cluster object, as follows:
  *
  * <pre>{@code
- * Cluster cluster = Cluster.builder()
- *                      .addContactPoint(hostname)
+ * CqlSession session = CqlSession.builder()
+ *                      .addContactPoint(new InetSocketAddress(ipAddress, 9042))
  *                      .withAuthProvider(KerberosAuthProvider.builder().build()
  *                      .build();
  * }</pre>
@@ -64,8 +63,8 @@ import java.util.concurrent.CompletionStage;
  * the builder as follows:
  *
  * <pre>{@code
- * Cluster cluster = Cluster.builder()
- *                      .addContactPoint(hostname)
+ * CqlSession session = CqlSession.builder()
+ *                      .addContactPoint(new InetSocketAddress(ipAddress, 9042))
  *                      .withAuthProvider(KerberosAuthProvider.builder()
  *                                          .withSaslProtocol("cassandra")
  *                                          .build())
@@ -77,6 +76,20 @@ import java.util.concurrent.CompletionStage;
  * <br>
  * e.g. If your service principal is <code>cassandra/node1.cluster.example.com@EXAMPLE.COM</code>
  * then the SASL protocol name must be <code>cassandra</code>.
+ *
+ * <h2>Override SASL server name</h2>
+ *
+ * The SASL client will use the canonical host name from the contact point IP address.  To override this behavior,
+ * configured the builder with a custom ServerNameResolver as follows:
+ *
+ * <pre>{@code
+ * CqlSession session = CqlSession.builder()
+ *                      .addContactPoint(new InetSocketAddress(ipAddress, 9042))
+ *                      .withAuthProvider(KerberosAuthProvider.builder()
+ *                                          .withServerNameResolver(new CustomServerNameResolver())
+ *                                          .build())
+ *                      .build();
+ * }</pre>
  *
  * <h2>JAAS configuration file</h2>
  * A JAAS configuration file with an entry named {@value KerberosAuthenticator#JAAS_CONFIG_ITEM_NAME} must be provided in order to
@@ -110,9 +123,6 @@ import java.util.concurrent.CompletionStage;
  */
 public class KerberosAuthProvider implements AuthProvider
 {
-
-    private static final Logger logger = LoggerFactory.getLogger(KerberosAuthProvider.class);
-
     private static final String DEFAULT_SASL_PROTOCOL = "cassandra";
     private static final Map<String, String> DEFAULT_SASL_PROPERTIES =
             ImmutableMap.<String, String>builder()
@@ -121,12 +131,17 @@ public class KerberosAuthProvider implements AuthProvider
                     .build();
 
     private final String authorizationId;
+    private final ServerNameResolver serverNameResolver;
     private final String saslProtocol;
     private final Map<String, ?> saslProperties;
 
-    private KerberosAuthProvider(final String authorizationId, final String saslProtocol, final Map<String, ?> saslProperties)
+    private KerberosAuthProvider(final String authorizationId,
+                                 final ServerNameResolver serverNameResolver,
+                                 final String saslProtocol,
+                                 final Map<String, ?> saslProperties)
     {
         this.authorizationId = authorizationId;
+        this.serverNameResolver = serverNameResolver;
         this.saslProtocol = saslProtocol;
         this.saslProperties = ImmutableMap.copyOf(saslProperties);
     }
@@ -137,6 +152,7 @@ public class KerberosAuthProvider implements AuthProvider
 
     public static class Builder {
         private String authorizationId = null;
+        private ServerNameResolver serverNameResolver = new ServerNameResolver(){};
         private String saslProtocol = DEFAULT_SASL_PROTOCOL;
         private Map<String, ?> saslProperties = DEFAULT_SASL_PROPERTIES;
 
@@ -204,16 +220,31 @@ public class KerberosAuthProvider implements AuthProvider
             return this;
         }
 
+        /**
+         * Optional resolver for the serverName as part of the SASL Client API.  Defaults to the IP Addresses Canonical HostName.
+         *
+         * See <a href="https://docs.oracle.com/javase/8/docs/technotes/guides/security/sasl/sasl-refguide.html#CLIENT">here</a>
+         * for further information.
+         *
+         * @param serverNameResolver The optional implementation of a resolver for the serverName
+         * @return the builder object
+         */
+        public Builder withServerNameResolver(ServerNameResolver serverNameResolver)
+        {
+            this.serverNameResolver = serverNameResolver;
+            return this;
+        }
+
         public KerberosAuthProvider build()
         {
-            return new KerberosAuthProvider(authorizationId, saslProtocol, saslProperties);
+            return new KerberosAuthProvider(authorizationId, serverNameResolver, saslProtocol, saslProperties);
         }
     }
 
     @Override
     public Authenticator newAuthenticator(@NonNull EndPoint endpoint, @NonNull String authenticator) throws AuthenticationException
     {
-        return new KerberosAuthenticator(authorizationId, saslProtocol, endpoint, saslProperties);
+        return new KerberosAuthenticator(authorizationId, serverNameResolver, saslProtocol, endpoint, saslProperties);
     }
 
     @Override
@@ -239,7 +270,11 @@ public class KerberosAuthProvider implements AuthProvider
         private final Subject subject;
         private final SaslClient saslClient;
 
-        private KerberosAuthenticator(String authorizationId, String saslProtocol, EndPoint endpoint, Map<String, ?> saslProperties)
+        private KerberosAuthenticator(String authorizationId,
+                                      ServerNameResolver serverNameResolver,
+                                      String saslProtocol,
+                                      EndPoint endpoint,
+                                      Map<String, ?> saslProperties)
         {
             if (saslProperties == null) {
                 throw new NullPointerException("No SASL Properties supplied, unable to perform kerberos authentication");
@@ -247,17 +282,17 @@ public class KerberosAuthProvider implements AuthProvider
 
             this.subject = loginAsSubject();
 
-            String hostName = ((InetSocketAddress)endpoint.resolve()).getAddress().getCanonicalHostName();
+            String serverName = serverNameResolver.resolve(endpoint);
 
-            logger.debug("Creating SaslClient for {} on Host {} with {} mechanism. SASL Protocol: {} SASL Properties: {}",
-                    authorizationId, hostName, SASL_MECHANISMS, saslProtocol, saslProperties);
+            logger.debug("Creating SaslClient for {} on Server {} with {} mechanism. SASL Protocol: {} SASL Properties: {}",
+                    authorizationId, serverName, SASL_MECHANISMS, saslProtocol, saslProperties);
 
             try {
                 this.saslClient = Sasl.createSaslClient(
                         SASL_MECHANISMS,
                         authorizationId,
                         saslProtocol,
-                        hostName,
+                        serverName,
                         saslProperties,
                         null);
             } catch (SaslException e) {
