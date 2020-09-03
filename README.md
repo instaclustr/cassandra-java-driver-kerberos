@@ -14,7 +14,7 @@ The authenticator is distributed via Maven Central. To use, add the following de
 <dependency>
   <groupId>com.instaclustr</groupId>
   <artifactId>cassandra-driver-kerberos</artifactId>
-  <version>2.0.0</version>
+  <version>3.0.0</version>
 </dependency>
 ```
 
@@ -61,10 +61,24 @@ See [here](http://web.mit.edu/kerberos/www/krb5-latest/doc/admin/conf_files/krb5
 The plugin works with the [Cassandra Java driver](https://github.com/datastax/java-driver):
 
 ```
-CqlSession session = CqlSession.builder()
-                      .addContactPoint(new InetSocketAddress(ipAddress, 9042))
-                      .withAuthProvider(KerberosAuthProvider.builder().build()
-                      .build();
+ CqlSession session = CqlSession.builder()
+                        .addContactPoint(new InetSocketAddress(ipAddress, 9042))
+                        .withAuthProvider(new ProgrammaticKerberosAuthProvider(
+                            KerberosAuthOptions.builder().build()
+                        )).build();
+```
+
+You may also configure the authenticator provider via file configuration as this driver builds 
+on top of Cassandra Driver version 4. Please consult Javadoc of `KerberosAuthProvider` to 
+know what configuration properties are available.
+
+```
+ datastax-java-driver {
+    advanced.auth-provider {
+        class = com.instaclustr.cassandra.driver.auth.KerberosAuthProvider
+        ... options
+    }
+ }
 ```
 
 A JAAS config file is also required. The following example retrieves a TGT from the local Kerberos ticket cache:
