@@ -30,7 +30,12 @@
             <organizationUrl>https://www.instaclustr.com</organizationUrl>
         </developer>
     </developers>
-
+    
+    <organization>
+        <name>Instaclustr</name>
+        <url>https://instaclustr.com</url>
+    </organization>
+    
     <scm>
         <connection>scm:git:git@github.com:instaclustr/cassandra-java-driver-kerberos.git</connection>
         <developerConnection>scm:git:git@github.com:instaclustr/cassandra-java-driver-kerberos.git</developerConnection>
@@ -61,6 +66,7 @@
     </dependencies>
 
     <build>
+        <finalName>cassandra-driver-kerberos</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -73,12 +79,16 @@
             </plugin>
         </plugins>
     </build>
-
+    
     <distributionManagement>
         <repository>
             <id>ossrh</id>
             <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
         </repository>
+        <snapshotRepository>
+            <id>nexus-snapshots</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
+        </snapshotRepository>
     </distributionManagement>
 
     <profiles>

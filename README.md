@@ -1,5 +1,9 @@
 # Cassandra Java Driver Kerberos Authenticator
 
+![https://search.maven.org/search?q=g:%22com.instaclustr%22%20AND%20a:%22cassandra-driver-kerberos%22](https://img.shields.io/maven-central/v/com.instaclustr/cassandra-driver-kerberos.svg?label=Maven%20Central)
+
+![https://circleci.com/gh/instaclustr/cassandra-java-driver-kerberos](https://circleci.com/gh/instaclustr/cassandra-java-driver-kerberos.svg?style=svg)
+
 A GSSAPI authentication provider for the [Cassandra Java driver](https://github.com/datastax/java-driver).
 
 This driver plugin is intended to work with the 
