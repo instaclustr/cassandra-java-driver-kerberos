@@ -1,0 +1,27 @@
+version:
+jobs:
+  build:
+
+    working_directory: ~/cassandra-java-driver-kerberos
+
+    docker:
+      - image: circleci/openjdk:8-jdk-stretch
+
+    steps:
+
+      - checkout
+
+      - restore_cache:
+          key: cassandra-java-driver-kerberos-{{ checksum "pom.xml" }}
+
+      - run: mvn dependency:go-offline # gets the project dependencies
+
+      - save_cache:
+          paths:
+            - ~/.m2
+          key: cassandra-java-driver-kerberos-{{ checksum "pom.xml" }}
+
+      - run: mvn clean install
+
+      - store_artifacts:
+          path: ~/cassandra-java-driver-kerberos/target/cassandra-driver-kerberos.jar.jar
