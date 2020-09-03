@@ -24,4 +24,4 @@ jobs:
       - run: mvn clean install
 
       - store_artifacts:
-          path: ~/cassandra-java-driver-kerberos/target/cassandra-driver-kerberos.jar.jar
+          path: ~/cassandra-java-driver-kerberos/target/cassandra-driver-kerberos.jar
