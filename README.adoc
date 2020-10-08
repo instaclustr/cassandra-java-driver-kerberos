@@ -1,41 +1,40 @@
 # Cassandra Java Driver Kerberos Authenticator
 
-![https://search.maven.org/search?q=g:%22com.instaclustr%22%20AND%20a:%22cassandra-driver-kerberos%22](https://img.shields.io/maven-central/v/com.instaclustr/cassandra-driver-kerberos.svg?label=Maven%20Central)
+image:https://img.shields.io/maven-central/v/com.instaclustr/cassandra-driver-kerberos.svg?label=Maven%20Central[link=https://search.maven.org/search?q=g:%22com.instaclustr%22%20AND%20a:%22cassandra-driver-kerberos%22"]
 
-![https://circleci.com/gh/instaclustr/cassandra-java-driver-kerberos](https://circleci.com/gh/instaclustr/cassandra-java-driver-kerberos.svg?style=svg)
+image:https://circleci.com/gh/instaclustr/cassandra-java-driver-kerberos.svg?style=svg["Instaclustr",link="https://circleci.com/gh/instaclustr/cassandra-java-driver-kerberos"]
 
 A GSSAPI authentication provider for the [Cassandra Java driver](https://github.com/datastax/java-driver).
 
-This driver plugin is intended to work with the 
-[Cassandra kerberos authenticator](https://github.com/instaclustr/cassandra-kerberos) plugin for 
-[Apache Cassandra](https://cassandra.apache.org/).
+This driver plugin is intended to work with the
+https://github.com/instaclustr/cassandra-kerberos[Cassandra kerberos authenticator] plugin for https://cassandra.apache.org/[Apache Cassandra].
 
 ## Usage
 
 The authenticator is distributed via Maven Central. To use, add the following dependency to your POM:
 
-```
+----
 <dependency>
   <groupId>com.instaclustr</groupId>
   <artifactId>cassandra-driver-kerberos</artifactId>
   <version>3.0.0</version>
 </dependency>
-```
+----
 
 ### Pre-requisite setup steps
 
 - A Kerberos 5 KDC server is available
-- An NTP client is installed & configured on the application host, each Cassandra node, and the KDC. Ideally the application host syncs 
-  with the same time source as the KDC & Cassandra nodes in order to minimise potential time-sync issues.
+- An NTP client is installed & configured on the application host, each Cassandra node, and the KDC. Ideally the application host syncs
+with the same time source as the KDC & Cassandra nodes in order to minimise potential time-sync issues.
 - If using Oracle Java, ensure that the [Java Cryptographic Extensions Unlimited Strength Jurisdiction Policy Files](https://www.oracle.com/technetwork/java/javase/downloads/jce8-download-2133166.html)
-  are installed (not necessary when using OpenJDK or other JRE implementations)
+are installed (not necessary when using OpenJDK or other JRE implementations)
 - Follow the instructions [here](https://github.com/instaclustr/cassandra-kerberos) to configure a Cassandra cluster for Kerberos authentication.
 
 Configure the `/etc/krb5.conf` Kerberos config file (see [here](http://web.mit.edu/kerberos/www/krb5-latest/doc/admin/conf_files/krb5_conf.html) for further details).
 
 An example `krb5.conf` for the `EXAMPLE.COM` realm:
-    
-```
+
+----
 [logging]
 default = FILE:/var/log/krb5libs.log
 
@@ -53,45 +52,46 @@ default = FILE:/var/log/krb5libs.log
 [domain_realm]
  .example.com = EXAMPLE.COM
  example.com = EXAMPLE.COM
-```
-    
-See [here](http://web.mit.edu/kerberos/www/krb5-latest/doc/admin/conf_files/krb5_conf.html) for further details.
-    
-    
+----
+
+See http://web.mit.edu/kerberos/www/krb5-latest/doc/admin/conf_files/krb5_conf.html[here] for further details.
+
+
 ### How to use the authenticator plugin
 
 **Note:** *Please read the javadoc for full details on how to configure & use the plugin.*
 
 The plugin works with the [Cassandra Java driver](https://github.com/datastax/java-driver):
 
-```
+----
  CqlSession session = CqlSession.builder()
                         .addContactPoint(new InetSocketAddress(ipAddress, 9042))
                         .withAuthProvider(new ProgrammaticKerberosAuthProvider(
                             KerberosAuthOptions.builder().build()
                         )).build();
-```
+----
 
-You may also configure the authenticator provider via file configuration as this driver builds 
-on top of Cassandra Driver version 4. Please consult Javadoc of `KerberosAuthProvider` to 
+You may also configure the authenticator provider via file configuration as this driver builds
+on top of Cassandra Driver version 4. Please consult Javadoc of `KerberosAuthProvider` to
 know what configuration properties are available.
 
-```
+----
  datastax-java-driver {
     advanced.auth-provider {
         class = com.instaclustr.cassandra.driver.auth.KerberosAuthProvider
         ... options
     }
  }
-```
+----
 
 A JAAS config file is also required. The following example retrieves a TGT from the local Kerberos ticket cache:
 
-```
+----
 CassandraJavaClient {
    com.sun.security.auth.module.Krb5LoginModule required useTicketCache=true;
 };
-```
+----
+
 This particular example requires that the Kerberos client libraries & tools (`kinit` in particular) are installed.
 
 The location of the JAAS config file must be provided via the `java.security.auth.login.config` system property.
