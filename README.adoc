@@ -1,15 +1,14 @@
-# Cassandra Java Driver Kerberos Authenticator
+== Cassandra Java Driver Kerberos Authenticator
 
 image:https://img.shields.io/maven-central/v/com.instaclustr/cassandra-driver-kerberos.svg?label=Maven%20Central[link=https://search.maven.org/search?q=g:%22com.instaclustr%22%20AND%20a:%22cassandra-driver-kerberos%22"]
-
 image:https://circleci.com/gh/instaclustr/cassandra-java-driver-kerberos.svg?style=svg["Instaclustr",link="https://circleci.com/gh/instaclustr/cassandra-java-driver-kerberos"]
 
-A GSSAPI authentication provider for the [Cassandra Java driver](https://github.com/datastax/java-driver).
+A GSSAPI authentication provider for the https://github.com/datastax/java-driver[Cassandra Java driver].
 
 This driver plugin is intended to work with the
 https://github.com/instaclustr/cassandra-kerberos[Cassandra kerberos authenticator] plugin for https://cassandra.apache.org/[Apache Cassandra].
 
-## Usage
+=== Usage
 
 The authenticator is distributed via Maven Central. To use, add the following dependency to your POM:
 
@@ -21,16 +20,16 @@ The authenticator is distributed via Maven Central. To use, add the following de
 </dependency>
 ----
 
-### Pre-requisite setup steps
+=== Pre-requisite setup steps
 
 - A Kerberos 5 KDC server is available
 - An NTP client is installed & configured on the application host, each Cassandra node, and the KDC. Ideally the application host syncs
 with the same time source as the KDC & Cassandra nodes in order to minimise potential time-sync issues.
-- If using Oracle Java, ensure that the [Java Cryptographic Extensions Unlimited Strength Jurisdiction Policy Files](https://www.oracle.com/technetwork/java/javase/downloads/jce8-download-2133166.html)
+- If using Oracle Java, ensure that the https://www.oracle.com/technetwork/java/javase/downloads/jce8-download-2133166.html[Java Cryptographic Extensions Unlimited Strength Jurisdiction Policy Files]
 are installed (not necessary when using OpenJDK or other JRE implementations)
-- Follow the instructions [here](https://github.com/instaclustr/cassandra-kerberos) to configure a Cassandra cluster for Kerberos authentication.
+- Follow the instructions https://github.com/instaclustr/cassandra-kerberos[here] to configure a Cassandra cluster for Kerberos authentication.
 
-Configure the `/etc/krb5.conf` Kerberos config file (see [here](http://web.mit.edu/kerberos/www/krb5-latest/doc/admin/conf_files/krb5_conf.html) for further details).
+Configure the `/etc/krb5.conf` Kerberos config file (see http://web.mit.edu/kerberos/www/krb5-latest/doc/admin/conf_files/krb5_conf.html[here] for further details).
 
 An example `krb5.conf` for the `EXAMPLE.COM` realm:
 
@@ -57,7 +56,7 @@ default = FILE:/var/log/krb5libs.log
 See http://web.mit.edu/kerberos/www/krb5-latest/doc/admin/conf_files/krb5_conf.html[here] for further details.
 
 
-### How to use the authenticator plugin
+=== How to use the authenticator plugin
 
 **Note:** *Please read the javadoc for full details on how to configure & use the plugin.*
 
@@ -98,8 +97,8 @@ The location of the JAAS config file must be provided via the `java.security.aut
 
 For example:  `java -Djava.security.auth.login.config=/path/to/jaas.conf -jar MyApplication.jar`
 
-## Build
+=== Build
 
 If you would like to build the JAR package from source, checkout this project and run `mvn clean package`.
 
-Please see https://www.instaclustr.com/support/documentation/announcements/instaclustr-open-source-project-status/ for Instaclustr support status of this project.
+Please see https://www.instaclustr.com/support/documentation/announcements/instaclustr-open-source-project-status/[status] for Instaclustr support status of this project.

@@ -42,7 +42,7 @@ import com.datastax.oss.driver.api.core.metadata.EndPoint;
  *     authorization-id = application will assume role "cassandra" when not specified
  *     sasl-protocol = "cassandra" when not specified
  *     sasl-properties = optional sasl properties map where keys and values are strings
- *     server-name-resolver = f.q.c.n of implementation of com.instaclustr.cassandra.driver.auth.ServerNameResolver, otherwise
+ *     server-name-resolver = f.q.c.n of implementation of com.instaclustr.cassandra.driver.auth.ServerNameResolver, otherwise not used
  *   }
  * }
  * }</pre>
