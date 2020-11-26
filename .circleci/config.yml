@@ -1,4 +1,4 @@
-version:
+version: 2
 jobs:
   build:
 
@@ -12,16 +12,51 @@ jobs:
       - checkout
 
       - restore_cache:
-          key: cassandra-java-driver-kerberos-{{ checksum "pom.xml" }}
+          keys:
+            - m2-{{ checksum "pom.xml" }}
+            - m2-
 
-      - run: mvn dependency:go-offline # gets the project dependencies
+      - run: mvn clean install -DoutputDirectory=/tmp/artifacts
 
       - save_cache:
           paths:
             - ~/.m2
-          key: cassandra-java-driver-kerberos-{{ checksum "pom.xml" }}
-
-      - run: mvn clean install
+          key: m2-{{ checksum "pom.xml" }}
 
       - store_artifacts:
-          path: ~/cassandra-java-driver-kerberos/target/cassandra-driver-kerberos.jar
+          path: /tmp/artifacts
+
+      - persist_to_workspace:
+          root: /tmp/artifacts
+          paths:
+            - cassandra-driver-kerberos.jar
+
+  publish-github-release:
+    docker:
+      - image: circleci/golang
+    steps:
+      - attach_workspace:
+          at: ./artifacts
+      - run:
+          name: "Publish Release on GitHub"
+          command: |
+            set -xue
+            go get github.com/tcnksm/ghr
+            ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${CIRCLE_TAG} ./artifacts/
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build:
+          filters:
+            tags:
+              only: /^v\d+\.\d+\.\d+$/
+      - publish-github-release:
+          requires:
+            - build
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v\d+\.\d+\.\d+$/

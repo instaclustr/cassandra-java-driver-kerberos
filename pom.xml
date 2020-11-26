@@ -49,8 +49,11 @@
         <version.maven.source.plugin>3.0.1</version.maven.source.plugin>
         <version.maven.javadoc.plugin>3.1.0</version.maven.javadoc.plugin>
         <version.maven.gpg.plugin>1.6</version.maven.gpg.plugin>
+        <maven.jar.plugin.version>3.1.1</maven.jar.plugin.version>
         <version.nexus.staging.maven.plugin>1.6.8</version.nexus.staging.maven.plugin>
-
+    
+        <outputDirectory>${project.build.directory}</outputDirectory>
+        
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
 
@@ -76,6 +79,14 @@
                 <configuration>
                     <source>${maven.compiler.source}</source>
                     <target>${maven.compiler.target}</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>${maven.jar.plugin.version}</version>
+                <configuration>
+                    <outputDirectory>${outputDirectory}</outputDirectory>
                 </configuration>
             </plugin>
         </plugins>
