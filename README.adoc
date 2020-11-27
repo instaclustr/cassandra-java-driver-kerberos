@@ -60,7 +60,7 @@ See http://web.mit.edu/kerberos/www/krb5-latest/doc/admin/conf_files/krb5_conf.h
 
 **Note:** *Please read the javadoc for full details on how to configure & use the plugin.*
 
-The plugin works with the [Cassandra Java driver](https://github.com/datastax/java-driver):
+The plugin works with the https://github.com/datastax/java-driver[Cassandra Java driver]:
 
 ----
  CqlSession session = CqlSession.builder()
